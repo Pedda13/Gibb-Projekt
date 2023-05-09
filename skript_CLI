@@ -1,12 +1,14 @@
 #!/bin/bash
 
 while true; do
+    clear
     echo -n "Please enter IP-Address to remote control: "
     read UserIPAddress
 
     echo -n "Please enter a username which has enough permissions: "
     read UserName
 
+    clear
     echo "Choose what you want to do:"
     echo "1. Restart"
     echo "2. Shutdown"
@@ -29,6 +31,9 @@ while true; do
             echo "Invalid choice"
             ;;
     esac
+
+    read -p "Press enter to continue..."
+    clear
 
     read -p "Do you want to use another IP? (y/n): " UserAgain
     if [ "$UserAgain" == "y" ]; then
