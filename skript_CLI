@@ -39,6 +39,7 @@ while true; do
     if [ "$UserAgain" == "y" ]; then
         continue
     else
+	clear
         break
     fi
 done
