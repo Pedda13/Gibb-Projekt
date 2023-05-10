@@ -1,0 +1,102 @@
+#While Schlaufe damit der Benutzer mehrmals IP-Addressen eingeben kann.
+while true 
+do
+	#While Schlaufe um zu überprüfen, ob eine IP-Addresse eingegeben wurde.
+	while true
+	do
+		#Eingabefenster für die IP-Addresse.
+		UserIPAddress=$(zenity --entry --text="Please enter IP-Address to Remote control")
+		#Kontrolle, ob der Benutzer auf "Abbrechen" gedrückt hat. Wenn ja wird das Skript beendet.
+		if [[ $? -ne 0 ]]
+		then
+			exit
+		#Kontrolle, ob die Variable UserIPAddress leer ist oder nicht.
+		elif [ -z "$UserIPAddress" ]
+		then
+			#Wenn leer wird die while Schlaufe wiederholt. 
+			continue
+		else
+			#Wenn etwas in der Variable steht, wird die while Schlaufe unterbrochen und der Code geht weiter.
+			break
+		fi
+	done
+	#Abfrage für den Benutzer des ferngesteuerten Computers.
+	UserName=$(zenity --entry --text="Please enter an Username which has enough permissions")
+	#Kontrolle, ob der Benutzer auf "Abbrechen" gedrückt hat. Wenn ja wird das Skript beendet.
+	if [[ $? -ne 0 ]]
+	then
+		exit
+	#Wenn der Benutzer kein Nutzernamen angibt, wird automatisch "root" als Nutzername verwendet.
+	elif [ -z "$UserName" ]
+	then
+		UserName="root"
+	fi
+	#Abfrage, was der Benutzer nun machen möchte; Neustarten, Herunterfahren, oder einenen benutzerdefinierten Command.
+	UserChoice=$(zenity --list --title="Choose what you want to do" --column "Choose" Restart Shutdown Custom)
+	#Kontrolle, ob der Benutzer auf "Abbrechen" gedrückt hat. Wenn ja wird das Skript beendet.
+	if [[ $? -ne 0 ]]
+	then
+		exit
+	fi
+	if [ -z "$UserChoice" ]
+	then
+		zenity --warning --text "Invalid Input"
+		continue
+	
+	else
+		#Code-Abschnitt, wenn der Benutzer Neustarten angewählt hat.
+		if [ $UserChoice == "Restart" ]
+		then
+			#Es wird eine SSH-Session mit den angegebenen Werten aufgebaut und der command "Sudo shutdown now -r" mitgegeben.
+			ssh -t $UserName@$UserIPAddress "sudo shutdown now -r"
+        		#Abfrage, ob der Benutzer eine andere IP benutzen möchte.
+			if zenity --question --text="Do you want to use another IP?"
+			then
+				continue
+			else
+				exit
+			fi
+		fi
+		#Code-Abschnitt, wenn der Benutzer Herunterfahren angewählt hat.
+		if [ $UserChoice == "Shutdown" ]
+		then
+			#Es wird eine SSH-Session mit den angegebenen Wertden aufgebaut und der command "Sudo shutdown now" mitgegeben.
+			ssh -t $UserName@$UserIPAddress "sudo shutdown now"
+			#Abfrage, ob der Benutzer eine andere IP benutzen möchte.
+			if zenity --question --text="Do you want to use another IP?"
+			then
+				continue
+			else
+				exit
+			fi
+		fi
+		#Code-Abschnitt, wenn der Benutzer benutzerdefinierter Command angewählt hat.
+		if [ $UserChoice == "Custom" ]
+		then
+    			#Der Benutzer wird aufgefordert den Command einzugeben.
+			Usercommand=$(zenity --entry --text="Please enter the command you want to use")
+    			#Kontrolle, ob der Benutzer auf "Abbrechen" gedrückt hat. Wenn ja wird das Skript beendet.
+			if [[ $? -ne 0 ]]
+			then 
+				exit
+   	 		#Kontrolle, ob die Variable Usercommand leer ist oder nicht.
+			elif [ -z "$Usercommand" ]
+			then
+				zenity --warning --text="Invalid Input"
+				continue
+			else
+				#Es wird eine SSH-Session mit den angegebenen Wertden aufgebaut und der eingegebene command mitgegeben
+				ssh -t $UserName@$UserIPAddress "$Usercommand"
+        			#Abfrage, ob der Benutzer eine andere IP benutzen möchte.
+				if zenity --question --text="Do you want to use another IP?"
+				then
+					continue
+				else
+					exit
+				fi
+			fi
+		fi
+	
+	fi
+	
+done
