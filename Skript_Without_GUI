@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Dieses Skript ermöglicht die Remote-Steuerung eines Computers über die Kommandozeile.
-
-while true 
+clear
+while true
 do
 	while true
 	do
@@ -14,16 +14,15 @@ do
 			break
 		fi
 	done
+	clear
 	read -p "Bitte geben Sie einen Benutzernamen ein, der ausreichende Berechtigungen hat: " UserName
 	if [ -z "$UserName" ]
 	then
 		UserName="root"
-		echo $UserName
-	else
-		break
 	fi
+	clear
 	echo "Wählen Sie eine Option:"
-	select UserChoice in "Neustart" "Herunterfahren" "Benutzerdefiniert" "Abbrechen"
+	select UserChoice in "Neustart" "Herunterfahren" "Benutzerdefiniert"
 	do
 		case $UserChoice in
 			"Neustart")
@@ -32,8 +31,12 @@ do
 				if [ $UserAgain == "j" ]
 				then
 					continue
+				elif [ $UserAgain == "n" ]
+				then
+					exit
 				else
-					break 2
+					echo "Ungültige Option"
+					continue 2
 				fi
 				;;
 			"Herunterfahren")
@@ -44,13 +47,14 @@ do
 					continue
 				elif [ $UserAgain == "n" ]
 				then
-					break 2
+					exit
 				else
 					echo "Ungültige Option"
 					continue 2
 				fi
 				;;
 			"Benutzerdefiniert")
+				clear
 				read -p "Bitte geben Sie den Befehl ein, den Sie ausführen möchten: " UserCommand
 				ssh -t $UserName@$UserIPAddress "$UserCommand"
 				read -p "Möchten Sie eine andere IP-Adresse verwenden? (j/n)" UserAgain
@@ -59,7 +63,7 @@ do
 					continue
 				elif [ $UserAgain == "n" ]
 				then
-					break 2
+					exit
 				else
 					echo "Ungültige Option"
 					continue 2
