@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# Dieses Skript ermöglicht die Remote-Steuerung eines Computers über die Kommandozeile.
+
+while true 
+do
+	while true
+	do
+		read -p "Bitte geben Sie eine IP-Adresse zum Fernsteuern ein: " UserIPAddress
+		if [ -z "$UserIPAddress" ]
+		then
+			continue
+		else
+			break
+		fi
+	done
+	read -p "Bitte geben Sie einen Benutzernamen ein, der ausreichende Berechtigungen hat: " UserName
+	if [ -z "$UserName" ]
+	then
+		UserName="root"
+		echo $UserName
+	else
+		break
+	fi
+	echo "Wählen Sie eine Option:"
+	select UserChoice in "Neustart" "Herunterfahren" "Benutzerdefiniert" "Abbrechen"
+	do
+		case $UserChoice in
+			"Neustart")
+				ssh -t $UserName@$UserIPAddress "sudo shutdown now -r"
+				read -p "Möchten Sie eine andere IP-Adresse verwenden? (j/n)" UserAgain
+				if [ $UserAgain == "j" ]
+				then
+					continue
+				else
+					break 2
+				fi
+				;;
+			"Herunterfahren")
+				ssh -t $UserName@$UserIPAddress "sudo shutdown now"
+				read -p "Möchten Sie eine andere IP-Adresse verwenden? (j/n)" UserAgain
+				if [ $UserAgain == "j" ]
+				then
+					continue
+				elif [ $UserAgain == "n" ]
+				then
+					break 2
+				else
+					echo "Ungültige Option"
+					continue 2
+				fi
+				;;
+			"Benutzerdefiniert")
+				read -p "Bitte geben Sie den Befehl ein, den Sie ausführen möchten: " UserCommand
+				ssh -t $UserName@$UserIPAddress "$UserCommand"
+				read -p "Möchten Sie eine andere IP-Adresse verwenden? (j/n)" UserAgain
+				if [ $UserAgain == "j" ]
+				then
+					continue
+				elif [ $UserAgain == "n" ]
+				then
+					break 2
+				else
+					echo "Ungültige Option"
+					continue 2
+				fi
+				;;
+			"Abbrechen")
+				exit
+				;;
+			*)
+				echo "Ungültige Option"
+				continue
+				;;
+		esac
+	done
+done
