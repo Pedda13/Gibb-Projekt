@@ -34,7 +34,7 @@ do
 		for block in "${blocks[@]}";
 		do
 			# Falls der Block grösser oder gleich 0 und der Block kleiner oder gleich 255 ist, geht das Skript weiter. 
-			if (( block -ge 0 && block -le 255 ));
+			if (( block > 0 && block < 255 ));
 			then
 				continue
 			else
@@ -45,7 +45,16 @@ do
 		# Wenn die Kontrolle von Oben korrekt durchlaufen ist geht das Skript weiter.
 		if [ $valid == true ]
 		then
-			break
+			# Es wird mithilfe eines pings getestet, op der Host erreichbar ist oder nicht.
+			ping -c 2 -W 2 $UserIPAddress >/dev/null
+			if [ $? -eq 0 ];
+			then
+				break
+			else
+				# Warnung, dass die IP-Addresse nicht erreichbar ist
+				zenity --warning --text="IP-Address not reachable"
+				continue
+			fi
 		else
 			# Ansonsten wird die Schlaufe erneut durchgegangen und es wird eine neue IP-Addresse eingegeben.
 			zenity --warning --text="Invalid IP-Address"
@@ -53,18 +62,33 @@ do
 		fi
 	done
 	# Abfrage für den Benutzer des ferngesteuerten Computers.
-	UserName=$(zenity --entry --text="Please enter an Username which has enough permissions")
-	# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
-	if [[ $? -ne 0 ]]
-	then
-		exit
-	# Wenn der Benutzer kein Nutzernamen angibt, wird automatisch "root" als Nutzername verwendet.
-	elif [ -z "$UserName" ]
-	then
-		# Warnung, dass kein Nutzername angegeben wurde und nun "root" als Nutzername gebraucht wird.
-		zenity --warning --text="No user given, user set to root"
-		UserName="root"
-	fi
+	while true
+	do
+		UserName=$(zenity --entry --text="Please enter an Username which has enough permissions")
+		# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
+		if [[ $? -ne 0 ]]
+		then
+			exit
+		# Wenn der Benutzer kein Nutzernamen angibt, wird automatisch "root" als Nutzername verwendet.
+		elif [ -z "$UserName" ]
+		then
+			# Warnung, dass kein Nutzername angegeben wurde und nun "root" als Nutzername gebraucht wird.
+			zenity --warning --text="No user given, user set to root"
+			UserName="root"
+		else
+			# Hier wird getestet, ob der Benutzer auf auf dem anderen PC vorhanden ist oder nicht
+			ssh -o BatchMode=yes -o ConnectTimeout=5  $UserName@$UserIPAddress id -u $UserName >/dev/null 2>&1
+			# Falls der Ping erfolgreich sein sollte geht das skript weiter.
+			if [ $? -eq 0 ];
+			then
+				break
+			else
+				# Warnung, dass der Nutzer invalid ist.
+				zenity --warning --text="User not Valid"
+				continue
+			fi
+		fi
+	done
 	# Abfrage, was der Benutzer nun machen möchte; Neustarten, Herunterfahren, oder einenen benutzerdefinierten Command.
 	UserChoice=$(zenity --list --title="Choose what you want to do" --column "Choose" Restart Shutdown Custom)
 	# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
