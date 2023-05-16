@@ -8,57 +8,120 @@ do
 			exit
 		elif [ -z "$UserIPAddress" ]
 		then
+			zenity --warning --text="No Input"
+			continue
+		fi
+		IFS="." read -ra blocks <<< "$UserIPAddress"
+		if [ ${#blocks[@]} -ne 4 ];
+		then
+			zenity --warning --text="Invalid IP address"
 			continue
 		else
+			valid=true
+		fi
+		for block in "${blocks[@]}";
+		do
+			if (( block > 0 && block < 255 ));
+			then
+				continue
+			else
+				valid=false
+			fi
+		done
+		if [ $valid == true ]
+		then
 			break
+		else
+			zenity --warning --text="Invalid IP-Address"
+			continue
 		fi
 	done
 	UserName=$(zenity --entry --text="Please enter an Username which has enough permissions")
-	if [ -z "$UserName" ]
+	if [[ $? -ne 0 ]]
 	then
+		exit
+	elif [ -z "$UserName" ]
+	then
+		zenity --warning --text="No user given, user set to root"
 		UserName="root"
 	fi
 	UserChoice=$(zenity --list --title="Choose what you want to do" --column "Choose" Restart Shutdown Custom)
-	if [ $UserChoice == "Restart" ]
+	if [[ $? -ne 0 ]]
+	then
+		exit
+	elif [ $UserChoice == "Restart" ]
 	then
 		ssh -t $UserName@$UserIPAddress "sudo shutdown now -r"
-		UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
-		if [ $UserAgain == "y" ]
-		then
-			continue
-		else
-			break
-		fi
-	fi
-	if [ $UserChoice == "Shutdown" ]
+		while true
+		do
+			UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
+			if [[ $? -ne 0 ]]
+			then
+				exit
+			elif [ $UserAgain == "y" ]
+			then
+				break
+			elif [ $UserAgain == "n" ]
+			then
+				exit
+			else
+				zenity --warning --text="Invalid Input"
+				continue
+			fi
+		done
+	elif [ $UserChoice == "Shutdown" ]
 	then
 		ssh -t $UserName@$UserIPAddress "sudo shutdown now"
-		UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
-		if [ $UserAgain == "y" ]
-		then
-			continue
-		elif [ $UserAgain == "n" ]
-		then
-			break
-		else
-			echo "Invalid option"
-			continue 
-		fi
-	fi
-	if [ $UserChoice == "Custom" ]
+		while true
+		do
+			UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
+			if [[ $? -ne 0 ]]
+			then
+				exit
+			elif [ $UserAgain == "y" ]
+			then
+				break
+			elif [ $UserAgain == "n" ]
+			then
+				exit
+			else
+				zenity --warning --text="Invalid Input"
+				continue 
+			fi
+		done
+	elif [ $UserChoice == "Custom" ]
 	then
-		Usercommand=$(zenity --entry --text="Please enter the command you want to use")
+		while true
+		do
+			Usercommand=$(zenity --entry --text="Please enter the command you want to use")
+			if [[ $? -ne 0 ]]
+			then
+				exit
+			elif [ -z "$Usercommand" ]
+			then
+				zenity --warning --text="No Command was entered"
+				continue
+			else
+				break
+			fi
+		done
 		ssh -t $UserName@$UserIPAddress "$Usercommand"
-		UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
-		if [ $UserAgain == "y" ]
-		then
-			continue
-		elif [ $UserAgain == "n" ]
-		then
-			break
-		else
-			echo "Invalid option"
-			continue 
-		fi
+		while true
+		do
+			UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
+			if [[ $? -ne 0 ]]
+			then
+				exit
+			elif [ $UserAgain == "y" ]
+			then
+				break
+			elif [ $UserAgain == "n" ]
+			then
+				exit
+			else
+				zenity --warning --text="Invalid Input"
+				continue 
+			fi
+		done
 	fi
 done
