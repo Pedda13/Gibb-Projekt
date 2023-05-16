@@ -1,60 +1,86 @@
+# Dieses Skript ermöglicht die Remote-Steuerung eines Computers mithilfe eines GUI.
+# While Schlaufe damit der Benutzer mehrmals das Skript durchlaufen kann.
 while true 
 do
+	# While Schlaufe um zu überprüfen, ob eine IP-Addresse eingegeben wurde und ob diese (grundsätzlich!!!) korrekt ist.
 	while true
 	do
+		# Abfrage der IP-Addresse.
 		UserIPAddress=$(zenity --entry --text="Please enter IP-Address to Remote control")
+		# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
 		if [[ $? -ne 0 ]]
 		then
 			exit
+		# Kontrolle, ob die Variable UserIPAddress leer ist oder nicht.
 		elif [ -z "$UserIPAddress" ]
 		then
+			# Warnung, dass keine Eingabe getätigt wurde
 			zenity --warning --text="No Input"
 			continue
 		fi
+		# Splittet die IP-Addresse anhand der Punkte.
 		IFS="." read -ra blocks <<< "$UserIPAddress"
+		# Kontrolle, ob die IP-Adresse 4 Blöcke hat.
 		if [ ${#blocks[@]} -ne 4 ];
 		then
+			# Warnung, dass die IP-Addresse falsch ist
 			zenity --warning --text="Invalid IP address"
 			continue
 		else
+			# Variable, damit schlussendlich, wenn alle Blöcke korrekt sind, weitergegangen werden kann.
 			valid=true
 		fi
+		# Schlaufe, um jeden Block im Array zu überprüfen.
 		for block in "${blocks[@]}";
 		do
-			if (( block > 0 && block < 256 ));
+			# Falls der Block grösser oder gleich 0 und der Block kleiner oder gleich 255 ist, geht das Skript weiter. 
+			if (( block -ge 0 && block -le 255 ));
 			then
 				continue
 			else
+				# Die Variable, wird auf false gesetzt, damit die schlaufe neugestartet werden kann.
 				valid=false
 			fi
 		done
+		# Wenn die Kontrolle von Oben korrekt durchlaufen ist geht das Skript weiter.
 		if [ $valid == true ]
 		then
 			break
 		else
+			# Ansonsten wird die Schlaufe erneut durchgegangen und es wird eine neue IP-Addresse eingegeben.
 			zenity --warning --text="Invalid IP-Address"
 			continue
 		fi
 	done
+	# Abfrage für den Benutzer des ferngesteuerten Computers.
 	UserName=$(zenity --entry --text="Please enter an Username which has enough permissions")
+	# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
 	if [[ $? -ne 0 ]]
 	then
 		exit
+	# Wenn der Benutzer kein Nutzernamen angibt, wird automatisch "root" als Nutzername verwendet.
 	elif [ -z "$UserName" ]
 	then
+		# Warnung, dass kein Nutzername angegeben wurde und nun "root" als Nutzername gebraucht wird.
 		zenity --warning --text="No user given, user set to root"
 		UserName="root"
 	fi
+	# Abfrage, was der Benutzer nun machen möchte; Neustarten, Herunterfahren, oder einenen benutzerdefinierten Command.
 	UserChoice=$(zenity --list --title="Choose what you want to do" --column "Choose" Restart Shutdown Custom)
+	# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
 	if [[ $? -ne 0 ]]
 	then
 		exit
+	# Code-Abschnitt, wenn der Benutzer Neustarten angewählt hat.
 	elif [ $UserChoice == "Restart" ]
 	then
+		# Es wird eine SSH-Session mit den angegebenen Werten aufgebaut und der command "Sudo shutdown now -r" mitgegeben.
 		ssh -t $UserName@$UserIPAddress "sudo shutdown now -r"
 		while true
 		do
+			# Abfrage, ob der Benutzer noch eine andere IP benutzen möchte.
 			UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
+			# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
 			if [[ $? -ne 0 ]]
 			then
 				exit
@@ -65,16 +91,21 @@ do
 			then
 				exit
 			else
+				# Warnung, dass eine falsche Eingabe getätigt wurde.
 				zenity --warning --text="Invalid Input"
 				continue
 			fi
 		done
+	# Code-Abschnitt, wenn der Benutzer Herunterfahren angewählt hat.
 	elif [ $UserChoice == "Shutdown" ]
 	then
+		# Es wird eine SSH-Session mit den angegebenen Werten aufgebaut und der command "Sudo shutdown now" mitgegeben.
 		ssh -t $UserName@$UserIPAddress "sudo shutdown now"
 		while true
 		do
+			# Abfrage, ob der Benutzer noch eine andere IP benutzen möchte.
 			UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
+			# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
 			if [[ $? -ne 0 ]]
 			then
 				exit
@@ -85,30 +116,39 @@ do
 			then
 				exit
 			else
+				# Warnung, dass eine falsche Eingabe getätigt wurde.
 				zenity --warning --text="Invalid Input"
 				continue 
 			fi
 		done
+	# Code-Abschnitt, wenn der Benutzer benutzerdefinierter Command angewählt hat.
 	elif [ $UserChoice == "Custom" ]
 	then
 		while true
 		do
+			# Der Benutzer wird aufgefordert den Command einzugeben.
 			Usercommand=$(zenity --entry --text="Please enter the command you want to use")
+			# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
 			if [[ $? -ne 0 ]]
 			then
 				exit
+			# Kontrolle, ob die Variable UserCommand leer ist oder nicht.
 			elif [ -z "$Usercommand" ]
 			then
+				# Warnung, dass kein Command eingegeben wurde.
 				zenity --warning --text="No Command was entered"
 				continue
 			else
 				break
 			fi
 		done
+		# Es wird eine SSH-Session mit den angegebenen Wertden aufgebaut und der eingegebene command mitgegeben.
 		ssh -t $UserName@$UserIPAddress "$Usercommand"
 		while true
 		do
+			# Abfrage, ob der Benutzer eine andere IP benutzen möchte.
 			UserAgain=$(zenity --entry --text="Do you want to use another IP?(y/n)")
+			# Kontrolle, ob der Benutzer auf Abbrechen geklickt hat.
 			if [[ $? -ne 0 ]]
 			then
 				exit
@@ -119,6 +159,7 @@ do
 			then
 				exit
 			else
+				# Warnung, dass eine falsche Eingabe getätigt wurde.
 				zenity --warning --text="Invalid Input"
 				continue 
 			fi
