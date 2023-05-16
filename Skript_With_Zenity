@@ -21,7 +21,7 @@ do
 		fi
 		for block in "${blocks[@]}";
 		do
-			if (( block > 0 && block < 255 ));
+			if (( block > 0 && block < 256 ));
 			then
 				continue
 			else
