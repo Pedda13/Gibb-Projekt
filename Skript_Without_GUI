@@ -1,81 +1,145 @@
-#!/bin/bash
-
 # Dieses Skript ermöglicht die Remote-Steuerung eines Computers über die Kommandozeile.
 clear
 while true
 do
 	while true
 	do
-		read -p "Bitte geben Sie eine IP-Adresse zum Fernsteuern ein: " UserIPAddress
+		read -p "Please enter IP-Address to Remote control: " UserIPAddress
 		if [ -z "$UserIPAddress" ]
 		then
+			clear
+			echo "No Input"
+			sleep 2
+			continue
+		fi
+		IFS="." read -ra blocks <<< "$UserIPAddress"
+		if [ ${#blocks[@]} -ne 4 ];
+		then
+			clear
+			echo "Invalid IP-Address"
+			sleep 2
 			continue
 		else
+			valid=true
+		fi
+		for block in "${blocks[@]}";
+		do
+			if (( block > 0 && block < 256 ));
+			then
+				continue
+			else
+				valid=false
+			fi
+		done
+		if [ $valid == true ]
+		then
 			break
+		else
+			clear
+			echo "Invalid IP-Address"
+			sleep 2
+			continue
 		fi
 	done
 	clear
-	read -p "Bitte geben Sie einen Benutzernamen ein, der ausreichende Berechtigungen hat: " UserName
+	read -p "Please enter an Username which has enough permissions: " UserName
 	if [ -z "$UserName" ]
 	then
+		clear
+		echo "No user given, user set to root"
+		sleep 2
 		UserName="root"
 	fi
 	clear
-	echo "Wählen Sie eine Option:"
-	select UserChoice in "Neustart" "Herunterfahren" "Benutzerdefiniert"
+	echo "Choose what you want to do:"
+	select UserChoice in "Restart" "Shutdown" "Custom"
 	do
 		case $UserChoice in
-			"Neustart")
+			"Restart")
 				ssh -t $UserName@$UserIPAddress "sudo shutdown now -r"
-				read -p "Möchten Sie eine andere IP-Adresse verwenden? (j/n)" UserAgain
-				if [ $UserAgain == "j" ]
-				then
-					continue
-				elif [ $UserAgain == "n" ]
-				then
-					exit
-				else
-					echo "Ungültige Option"
-					continue 2
-				fi
+				while true
+				do
+					read -p "Do you want to use another IP? (y/n)" UserAgain
+					if [ $UserAgain == "y" ]
+					then
+						break
+					elif [ $UserAgain == "n" ]
+					then
+						clear
+						exit
+					else
+						clear
+						echo "Invalid Input"
+						sleep 2
+						continue
+					fi
+				done
 				;;
-			"Herunterfahren")
+			"Shutdown")
 				ssh -t $UserName@$UserIPAddress "sudo shutdown now"
-				read -p "Möchten Sie eine andere IP-Adresse verwenden? (j/n)" UserAgain
-				if [ $UserAgain == "j" ]
-				then
-					continue
-				elif [ $UserAgain == "n" ]
-				then
-					exit
-				else
-					echo "Ungültige Option"
-					continue 2
-				fi
+				while true
+				do
+					read -p "Do you wnat to use another IP? (y/n)" UserAgain
+					if [ $UserAgain == "y" ]
+					then
+						break
+					elif [ $UserAgain == "n" ]
+					then
+						clear
+						exit
+					else
+						clear
+						echo "Invalid Input"
+						sleep 2
+						continue
+					fi
+				done
 				;;
-			"Benutzerdefiniert")
+			"Custom")
 				clear
-				read -p "Bitte geben Sie den Befehl ein, den Sie ausführen möchten: " UserCommand
+				while true
+				do
+					read -p "Please enter the command you want to use: " UserCommand
+					if [ -z "$UserCommand" ]
+					then
+						clear
+						echo "No Command was entered"
+						sleep 2
+						continue
+					else
+						break
+					fi
+				done
 				ssh -t $UserName@$UserIPAddress "$UserCommand"
-				read -p "Möchten Sie eine andere IP-Adresse verwenden? (j/n)" UserAgain
-				if [ $UserAgain == "j" ]
-				then
-					continue
-				elif [ $UserAgain == "n" ]
-				then
-					exit
-				else
-					echo "Ungültige Option"
-					continue 2
-				fi
+				while true
+				do
+					read -p "Do you want to use another IP? (y/n)" UserAgain
+					if [ $UserAgain == "y" ]
+					then
+						break
+					elif [ $UserAgain == "n" ]
+					then
+						clear
+						exit
+					else
+						clear
+						echo "Invalid Input"
+						sleep 2
+						continue
+					fi
+				done
 				;;
-			"Abbrechen")
+			"Abbort")
+				clear
 				exit
 				;;
 			*)
-				echo "Ungültige Option"
+				clear
+				echo "Invalid Input"
+				sleep 2
 				continue
 				;;
 		esac
 	done
 done
+clear
