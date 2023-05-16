@@ -3,7 +3,7 @@ clear
 # While Schlaufe damit der Benutzer mehrmals das Skript durchlaufen kann.
 while true
 do
-	#While Schlaufe um zu überprüfen, ob eine IP-Addresse eingegeben wurde und ob diese (grundsätzlich!!!) korrekt ist.
+	# While Schlaufe um zu überprüfen, ob eine IP-Addresse eingegeben wurde und ob diese (grundsätzlich!!!) korrekt ist.
 	while true
 	do
 		# Abfrage der IP-Addresse.
