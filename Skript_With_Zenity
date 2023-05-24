@@ -34,7 +34,7 @@ do
 		for block in "${blocks[@]}";
 		do
 			# Falls der Block grösser oder gleich 0 und der Block kleiner oder gleich 255 ist, geht das Skript weiter. 
-			if (( block > 0 && block < 255 ));
+			if (( block < 255 ));
 			then
 				continue
 			else
