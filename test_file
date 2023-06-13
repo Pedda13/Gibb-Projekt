@@ -1,53 +1,81 @@
+# Alle Imports, welche für das Ausführen des Skripts notwendig sind.
+# Bibliotheken für das holen der Wetterdaten
 from bs4 import BeautifulSoup
 import requests
+
+# Bibliothek für die Datenbank
 import sqlite3
+
+# Bibliothek, um Wartezeiten und pausen einzufügen
 import time
+
+# Bibliothek, um Tastendrücke zu erkennen
 import keyboard
+
+# Bibliothek, um das Passwort zu hashen
 import hashlib
+
+# Bibliothek, um Ordner zu erkennen, erstellen etc.
 import os
+
+# Bibliothek, um Grafiken zu erstellen
 import matplotlib.pyplot as plt
+
+# Bibliothek für REGEX abfragen
 import re
 
+
+# Header, welcher für das holen der Wetterdaten benötigt wird. Gibt dem Server Informationen über den Client
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
 
-
+# Funktion, um ein Passwort zu validieren
 def is_valid_password(password):
+    # Dieses Muster gibt vor, wie das Password aufgebaut sein muss. 8 Zeichen lang, Gross- Kleinschreibung und Sonderzeichen
     pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@#$%^&+=!])(?!.*\s)[A-Za-z\d@#$%^&+=!]{8,}$'
-
+    
+    # Je nachdem, ob das Passwort valide ist oder nicht wird True oder False zurückgegeben.
     if re.match(pattern, password):
         return True
     else:
         return False
 
-
+# Funktion, um ein Benutzername zu validieren
 def is_valid_username(username):
+    # Dieses Muster gibt vor, wie der Benutzername aufgebaut sein muss. 3 - 16 Zeichen lang, Gross- Kleinschreibung. Sonderzeichen sind nicht erlaubt.
     pattern = r'^[a-zA-Z0-9_]{3,16}$'
 
+    # Je nachdem, ob der Benutzername valide ist oder nicht wird True oder False zurückgegeben.
     if re.match(pattern, username):
         return True
     else:
         return False
 
 
+# Funktion, um eine Stadt/Ort zu validieren
 def is_valid_city(city):
-    pattern = r'^[A-Za-z\s-]+$'
-
+    # Da es zu gross wäre, eine ganze liste mit den Städten und Orten zu nutzen, wird hier nur geschaut, dass keine Sonderzeichen wie @, #, () etc. verwendet werden.
+    pattern = r'^[A-Za-zäöüÄÖÜ\s-]+$'
+    
+    # Je nachdem, ob die Stadt/Ort valide ist oder nicht wird True oder False zurückgegeben.
     if re.match(pattern, city):
         return True
     else:
         return False
 
 
+# Funktion, um ein Passwort zu hashen
 def hash_password(password):
-    # Das Passwort vor dem Speichern hashen
-    salt = "random_salt"  # Hier kannst du eine zufällige Salz-Zeichenkette verwenden
+    # Damit das Passwort sicherer abgespeichert wird, wird das Passwort "gesalted" quelle: www.geeksforgeeks.org
+    salt = "e5$Rg#"
     hashed_password = hashlib.sha256((password + salt).encode()).hexdigest()
     return hashed_password
 
 
+# Funktion, um einen neuen Benutzer zu erstellen oder das Passwort bzw. Benutzername zu ändern
 def create_new_user(newuser, password, subfolder):
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, "users.db")
     # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)  # Passe den Datenbanknamen entsprechend an
@@ -58,18 +86,22 @@ def create_new_user(newuser, password, subfolder):
     # Daten in die Datenbank einfügen oder aktualisieren
     conn.execute("INSERT OR REPLACE INTO users (username, password) VALUES (?, ?)", (newuser, hashed_password))
 
-    # Änderungen speichern und Verbindung schließen
+    # Änderungen speichern und Verbindung schliessen
     conn.commit()
     conn.close()
 
 
+# Funktion, um einen vorhandenen Benutzer zu löschen
 def delete_user(user, subfolder):
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, "users.db")
     # Mit der Datenbank verbinden
-    conn = sqlite3.connect(db_path)  # Passe den Datenbanknamen entsprechend an
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
+    # Den Benutzer aus der Datenbank lesen
     c.execute("SELECT * FROM users WHERE username=?", (user,))
     fetched_user = c.fetchone()
+    # Falls der Benutzer nicht vorhanden ist wird eine Fehlermeldung angezeigt.
     if not fetched_user:
         print("Benutzer existiert nicht.")
         conn.close()
@@ -79,10 +111,13 @@ def delete_user(user, subfolder):
     c.execute("DELETE FROM users WHERE username=?", (user,))
     conn.commit()
     conn.close()
+    # Die Wetterdatenbank des Nutzers löschen
     os.remove(f"Wetter Datenbanken/weather-{user}.db")
 
 
+# Funktion, um ein eingegebenes Passwort zu überprüfen
 def verify_password(user, password, subfolder):
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, "users.db")
     # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)  # Passe den Datenbanknamen entsprechend an
@@ -94,7 +129,7 @@ def verify_password(user, password, subfolder):
     cursor = conn.execute("SELECT password FROM users WHERE username = ?", (user,))
     result = cursor.fetchone()
 
-    # Verbindung schließen
+    # Verbindung schliessen
     conn.close()
 
     # Das eingegebene Passwort mit dem in der Datenbank gespeicherten Passwort vergleichen
@@ -102,18 +137,22 @@ def verify_password(user, password, subfolder):
         stored_password = result[0]
         if hashed_password == stored_password:
             return True
-
+            
     return False
 
 
+# Funktion, um eine Datenbank für einen Benutzer zu erstellen
 def create_weather_table(user, subfolder):
+    # Falls der Unterordner noch nicht existiert wird dieser erstellt
     if not os.path.exists(subfolder):
         os.makedirs(subfolder)
 
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, f'weather-{user}.db')
+    # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-
+    # Table "weather" erstellen
     c.execute('''CREATE TABLE IF NOT EXISTS weather (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     city TEXT,
@@ -124,16 +163,19 @@ def create_weather_table(user, subfolder):
                     humidity TEXT,
                     wind TEXT
                 )''')
-
+    # Verbindung schliessen
     conn.commit()
     conn.close()
 
 
+# Funktion, um die Datenbank für die Anmeldedaten zu erstellen
 def create_users_table(subfolder):
+    # Falls der Unterordner noch nicht existiert wird dieser erstellt
     if not os.path.exists(subfolder):
         os.makedirs(subfolder)
-
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, "users.db")
+    # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
@@ -143,29 +185,37 @@ def create_users_table(subfolder):
                   username TEXT NOT NULL,
                   password TEXT NOT NULL)''')
 
+    # Verbindung schliessen
     conn.commit()
     conn.close()
 
 
+# Funktion, um Wetterdaten in eine Datenbank einzufügen
 def insert_weather_data(city, time, info, temperature, precipitation, humidity, wind, user, subfolder):
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, f'weather-{user}.db')
+    # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-
+    # SQL-Befehl, um die Daten einzufügen
     c.execute('''INSERT INTO weather (city, time, info, temperature, precipitation, humidity, wind)
                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
               (city, time, info, temperature, precipitation, humidity, wind))
 
+    # Verbindung schliessen
     conn.commit()
     conn.close()
 
 
+# Funktion, um Wetterdaten stündlich zu holen und in eine Datenbank zu schreiben
 def scrape_weather_hourly(city_name, user):
+    # Damit die URL korrekt ist, müssen leerzeichen mit einem "+" ersetzt werden
     city_name = city_name.replace(" ", "+")
     try:
+        # Aufrufen der Wetterdaten
         res = requests.get(f'https://www.google.ch/search?q={city_name}+Wetter', headers=headers)
         print("Loading...")
-
+        # Abspeichern der Wetterdaten in Variablen
         soup = BeautifulSoup(res.text, 'html.parser')
         location = city_name
         time = soup.select('#wob_dts')[0].getText().strip()
@@ -174,7 +224,7 @@ def scrape_weather_hourly(city_name, user):
         precipitation = soup.select('#wob_pp')[0].getText().strip()
         humidity = soup.select('#wob_hm')[0].getText().strip()
         wind = soup.select('#wob_ws')[0].getText().strip()
-
+        # Wetterdaten im Terminal ausgeben
         print("Ort: " + location)
         print("Temperatur: " + temperature + "°C")
         print("Niederschlag: " + precipitation)
@@ -182,7 +232,7 @@ def scrape_weather_hourly(city_name, user):
         print("Wind: " + wind)
         print("Zeit: " + time)
         print("Wetter Beschrieb: " + info)
-
+        # Wetterdaten in die Datenbank schreiben
         insert_weather_data(location, time, info, temperature, precipitation, humidity, wind, user, "Wetter Datenbanken")
         print("Wetterdaten erfolgreich in die Datenbank eingefügt.")
 
@@ -190,12 +240,14 @@ def scrape_weather_hourly(city_name, user):
         print("Please enter a valid city name")
 
 
-def find_weather(city_name, user):
+# Funktion, um Wetterdaten zu holen und in eine Datenbank zu schreiben
+def scrape_weather(city_name, user):
+    # Damit die URL korrekt ist, müssen leerzeichen mit einem "+" ersetzt werden
     city_name = city_name.replace(" ", "+")
     try:
         res = requests.get(f'https://www.google.ch/search?q={city_name}+Wetter', headers=headers)
         print("Loading...")
-
+        # Abspeichern der Wetterdaten in Variablen
         soup = BeautifulSoup(res.text, 'html.parser')
         location = city_name
         time = soup.select('#wob_dts')[0].getText().strip()
@@ -204,7 +256,7 @@ def find_weather(city_name, user):
         precipitation = soup.select('#wob_pp')[0].getText().strip()
         humidity = soup.select('#wob_hm')[0].getText().strip()
         wind = soup.select('#wob_ws')[0].getText().strip()
-
+        # Wetterdaten im Terminal ausgeben
         print("Ort: " + location)
         print("Temperatur: " + temperature + "°C")
         print("Niederschlag: " + precipitation)
@@ -212,7 +264,7 @@ def find_weather(city_name, user):
         print("Wind: " + wind)
         print("Zeit: " + time)
         print("Wetter Beschrieb: " + info)
-
+        # Wetterdaten in die Datenbank schreiben
         insert_weather_data(location, time, info, temperature, precipitation, humidity, wind, user, "Wetter Datenbanken")
         print("Wetterdaten erfolgreich in die Datenbank eingefügt.")
 
@@ -220,14 +272,17 @@ def find_weather(city_name, user):
         print("Please enter a valid city name")
 
 
+# Funktion, um alle Wetterdaten einer Datenbank auszugeben
 def display_all_weather_data(user, subfolder):
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, f'weather-{user}.db')
+    # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-
+    # Alles von der Datenbank auswählen
     c.execute("SELECT * FROM weather")
     rows = c.fetchall()
-
+    # Falls Daten vorhanden sind Werden diese im Terminal ausgegeben
     if len(rows) > 0:
         print("Alle Wetterdaten:")
         for row in rows:
@@ -241,64 +296,85 @@ def display_all_weather_data(user, subfolder):
             print("Wind:", row[7])
             print("-----------------------")
     else:
+        # Wenn keine Daten vorhanden sind kommt eine Fehlermeldung
         print("Es sind keine Wetterdaten in der Datenbank vorhanden.")
 
+    # Verbindung schliessen
     conn.close()
 
 
+# Funktion, um alle vorhandenen Benutzer anzuzeigen
 def display_all_users():
+    # Pfad zur Datenbank
     db_path = os.path.join("User Datenbank", "users.db")
+    # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     try:
+        # Alle Benutzernamen auswählen
         c.execute("SELECT username FROM users")
         rows = c.fetchall()
+        # Falls daten vorhanden sind werden diese im Terminal ausgegeben
         if len(rows) > 0:
             print("Ergebnis:")
             for row in rows:
                 print(row)
         else:
+            # Wenn keine Daten vorhanden sind kommt eine Fehlermeldung
             print("Keine Ergebnisse gefunden.")
 
     except sqlite3.Error as e:
+        # Wenn ein anderer Fehler kommt, wird dieser ebenfalls ausgegeben
         print("Fehler bei der Ausführung der Abfrage:", e)
 
 
+# Funktion, um sich mit einer Datenbank zu verbinden
 def connect_to_weather_database(user, subfolder):
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, f'weather-{user}.db')
+    # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
+    # Abfrage des SQL-Befehls, welcher auf der Datenbank ausgeführt werden soll
     query = input("Geben Sie Ihre SQL-Abfrage ein (oder 'q' zum Beenden): ")
     while query.lower() != "q":
         try:
+            # Ausführen des SQL-Befehls
             c.execute(query)
             rows = c.fetchall()
+            # Falls es ein Ergebnis geben sollte wird dieses im Terminal ausgegeben
             if len(rows) > 0:
                 print("Ergebnis:")
                 for row in rows:
                     print(row)
             else:
+                # Wenn keine Daten vorhanden sind kommt eine Fehlermeldung
                 print("Keine Ergebnisse gefunden.")
-
+        # Falls der SQL-Befehl fehlerhaft ist oder eine andere Fehlermeldung von SQL kommt, wird dese ebenfalls ausgegeben
         except sqlite3.Error as e:
             print("Fehler bei der Ausführung der Abfrage:", e)
-
+        
         query = input("Geben Sie Ihre SQL-Abfrage ein (oder 'q' zum Beenden): ")
     conn.close()
 
 
+# Funktion, um vorhandene Wetterdaten einer Stadt grafisch darzustellen
 def show_graphs (city, subfolder, user):
+    # Pfad zur Datenbank
     db_path = os.path.join(subfolder, f'weather-{user}.db')
+    # Mit der Datenbank verbinden
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-
+    # Wetterdaten einer Bestimmten Stadt abfragen
     c.execute("SELECT * FROM weather WHERE city=?", (city,))
     rows = c.fetchall()
-
+    # Falls wetterdaten vorhanden sind, werden diese grafisch dargestellt quelle: matplotlib.org
     if len(rows) > 0:
-        temperatures = [float(row[4]) for row in rows]  # Liste der Temperaturen für die Stadt extrahieren
-        timestamps = [row[2] for row in rows]  # Liste der Zeitstempel für die Stadt extrahieren
-
+        # Liste der Temperaturen für die Stadt extrahieren
+        temperatures = [float(row[4]) for row in rows]  
+        # Liste der Zeitstempel für die Stadt extrahieren
+        timestamps = [row[2] for row in rows]  
+        # Grafik erstellen
         plt.plot(timestamps, temperatures)
         plt.xlabel('Zeit')
         plt.ylabel('Temperatur (°C)')
@@ -307,24 +383,33 @@ def show_graphs (city, subfolder, user):
         plt.tight_layout()
         plt.show()
     else:
+        # Falls keine Wetterdaten vorhanden sind wird eine Fehlermeldung angezeigt
         print("Es sind keine Wetterdaten für", city, "in der Datenbank vorhanden.")
 
+    # Verbindung schliessen
     conn.close()
 
 
+# Funktion, um alle Einträge einer Datenbakn zu löschen 
 def delete_all_entrys (user, subfolder):
     try:
+        # Pfad zur Datenbank
         db_path = os.path.join(subfolder, f'weather-{user}.db')
+        # Verbinden mit der Datenbank
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
+        # SQL-Befehl zum löschen aller einträge
         cursor.execute("DELETE FROM weather")
         conn.commit()
+        # Vernindung schliessen
         conn.close()
         print("Alle Einträge wurden erfolgreich gelöscht")
     except sqlite3.Error as e:
+        # Bei einer Fehlermeldung von SQL wird diese im Terminal ausgegeben
         print("Fehler beim Löschen der Einträge.", e)
 
 
+# Funktion, um das Hautpmenü anzuzeigen
 def main_menu():
     print("Willkommen im Hauptmenü!")
     print("1. Wetterdaten einer Stadt hohlen und in die Datenbank schreiben")
@@ -332,10 +417,12 @@ def main_menu():
     print("3. Datenbank ausgeben")
     print("4. Mit Datenbank verbinden")
     print("5. Alle Einträge in der Datenbank löschen")
-    print("6. Temperatur Graphik einer Stadt anzeigen")
-    print("7. Beenden")
+    print("6. Temperatur Grafik einer Stadt anzeigen")
+    print("7. Abmelden")
+    print("8. Beenden")
 
 
+# Funktion, um das Admin-Hauptmenü anzuzeigen
 def admin_menu():
     print("Willkommen im Admin-Hauptmenü!")
     print("1. Alle Benutzer anzeigen")
@@ -345,81 +432,109 @@ def admin_menu():
     print("5. Mit ausgewählter Datenbank verbinden")
     print("6. Alle Einträge der ausgewählten Datenbank löschen")
     print("7. Andere Datenbank auswählen")
-    print("8. Beenden")
+    print("8. Abmelden")
+    print("9. Beenden")
 
 
+# Funktion, der Admin-Hauptschleife
 def admin_loop():
+    # Falls der Unterordner "Wetter Datenbanken" noch nicht vorhanden ist, wird dieser erstellt
     if not os.path.exists('Wetter Datenbanken'):
         os.makedirs('Wetter Datenbanken')
-    folder_path = 'Wetter Datenbanken'  # Passe den Pfad zum gewünschten Ordner an
+    # Pfad zu den Wetter Datenbanken
+    folder_path = 'Wetter Datenbanken'
     # Alle Dateien im Ordner anzeigen
     files = os.listdir(folder_path)
-    # Durch die Liste der Dateien iterieren und anzeigen
+    # Durch die Liste der Dateien durchgehen und anzeigen
     for file in files:
         print(file)
+    # Der Admin kann auf alle Datenbanken zugreifen
     print("Bitte Wähle zuerst eine Datenbank aus")
     database_choice = input("Bitte nur den Namen des Users eingeben (Falls keine vorhanden ist einfach leer lassen): ")
     while True:
         admin_menu()
-        choice = input("Auswahl eingeben (1-8): ")
-
+        choice = input("Auswahl eingeben (1-9): ")
+        # Option 1, um alle Benutzer anzuzeigen
         if choice == "1":
             print("Option 1 ausgewählt.")
             display_all_users()
             continue
-
+        # Option 2, um einen neuen Benutzer zu erstellen
         elif choice == "2":
             print("Option 2 ausgewählt.")
-            newuser = input("Benutzername eingeben")
-            password = input("Password eingeben")
-            create_new_user(newuser, password, "User Datenbank")
-            create_weather_table(newuser, "Wetter Datenbanken")
-            continue
-
+            while choice == "2":
+                newuser = input("Benutzername eingeben")
+                password = input("Password eingeben")
+                # Überprüfung, ob Benutzername und Passwort valid sind
+                if is_valid_username(newuser) and is_valid_password(password):
+                    create_new_user(newuser, password, "User Datenbank")
+                    create_weather_table(newuser, "Wetter Datenbanken")
+                    print("Benutzer erfolgreich erstellt")
+                    break
+                else:
+                    print("Benutzername oder Passwort ungültig")
+                    print("Bitte beachte, dass der Benutzername zwischen 3 und 16 Zeichen lang ist und keine Sonderzeichen enthält")
+                    print("Bitte beachte, dass das Passwort mindestens 8 Zeichen lang ist und Zahlen, Gross- Kleinschreibung und mindestens ein Sonderzeichen enthält")
+                    continue
+        # Option 3, um den ausgewählten Benutzer zu löschen 
         elif choice == "3":
+            print("Option 3 ausgewählt.")
             print("Verbindung wird aufgebaut!")
             delete_user(database_choice, "User Datenbank")
             continue
-
+        # Option 4, um alle Daten der ausgewählten Datenbank auszugeben
         elif choice == "4":
+            print("Option 4 ausgewählt.")
             print("Verbindung wird aufgebaut!")
             display_all_weather_data(database_choice, "Wetter Datenbanken")
             continue
-
+        # Option 5, um sich mit der Datenbank zu verbinden, um Benutzerdefinierte SQL-Abfragen durchzuführen
         elif choice == "5":
+            print("Option 5 ausgewählt.")
             print("Verbindung wird aufgebaut!")
             connect_to_weather_database(database_choice, "Wetter Datenbanken")
             continue
-
+        # Option 6, um alle Einträge der ausgewählten Datenbank zu löschen
         elif choice == "6":
+            print("Option 6 ausgewählt.")
             print("Verbindung wird aufgebaut!")
             delete_all_entrys(database_choice, "Wetter Datenbanken")
-
+        # Option 7, um eine andere Datenbank/ Benutzer auszuwählen
         elif choice == "7":
             print("Option 7 ausgewählt.")
             admin_loop()
-
+        # Option 8, um sich mit einem anderen Benutzer anzumelden
         elif choice == "8":
+            print("Wird abgemeldet ...")
+            main_loop()
+        # Option 9, um das Skript zu beenden
+        elif choice == "9":
             print("Skript wird beendet!")
             exit()
 
         else:
-            print("Ungültige Eingabe. Bitte eine Zahl zwischen 1 und 5!")
+            # Bei falscher Eingabe wird eine Fehlermeldung angezeigt 
+            print("Ungültige Eingabe. Bitte eine Zahl zwischen 1 und 9!")
             continue
 
 
+# Funktion, um sich anzumelden
 def login_menu():
     administrator = False
     print("Login")
     print("Bitte gebe den Benutzernamen ein:")
     global username
+    # Eingabe des Benutzernamen
     username = input("Benutzername: ")
     print("Bitte gebe das Passwort ein:")
+    # Eingabe des Passworts
     password = input("Passwort: ")
+    # Überprüfung, ob der Benutzername und das Passwort korrekt sind
     if not verify_password(username, password, "User Datenbank"):
         print("Falscher Benutzername oder Passwort")
         login_menu()
     else:
+        # Falls der Benutzername "Admin" ist, wird später, die Admin-Hauptschleife ausgeführt
         if username.lower() == "admin":
             administrator = True
             return administrator
@@ -427,70 +542,103 @@ def login_menu():
             return administrator
 
 
+# Funktion, der Hauptschleife
 def main_loop():
     create_users_table("User Datenbank")
+    # Falls der Benutzer "Admin" ist, wird die Admin-Hauptschleife ausgeführt
     if login_menu():
         admin_loop()
         exit()
     else:
+        # Die Benutzer Wetter Datenbank erstellen
         create_weather_table(username, "Wetter Datenbanken")
     while True:
         stop = False
+        # Aufrufen vom Hauptmenü
         main_menu()
-        choice = input("Enter your choice (1-6): ")
-
+        # Abfrage der Auswahl des Benutzers
+        choice = input("Enter your choice (1-8): ")
+        # Option 1, um Wetterdaten zu holen und in die Datenbank zu schreiben
         if choice == "1":
             print("Option 1 ausgewählt.")
-            city_name = input("Stadtnamen eingeben: ")
-            find_weather(city_name, username)
-            continue
-
+            while choice == "1":
+                # Abfrage der Stadt/Ort
+                city_name = input("Stadtnamen eingeben: ")
+                # Überprüfung, ob die Stadt/Ort valid ist
+                if is_valid_city(city_name):
+                    scrape_weather(city_name, username)
+                    break
+                else:
+                    print("Stadtname ungültig")
+                    continue
+        # Option 2, um Wetterdaten stündlich zu holen und in die Datenbank zu schreiben
         elif choice == "2":
             print("Option 2 ausgewählt.")
-            city_name = input("Stadtnamen eingeben: ")
-            scrape_weather_hourly(city_name, username)
-            interval = 500
-            start_time = time.time()
-            next_execution = start_time + interval
-
-            while not stop:
-                current_time = time.time()
-                if current_time >= next_execution:
+            while choice == "2":
+                # Abfrage der Stadt/Ort
+                city_name = input("Stadtnamen eingeben: ")
+                # Überprüfung, ob die Stadt/Ort valid ist
+                if is_valid_city(city_name)
+                    # Erste Ausführung im sofort
                     scrape_weather_hourly(city_name, username)
-                    next_execution = current_time + interval
+                    # interval, um Stündlich zu wiederholen
+                    interval = 3600
+                    start_time = time.time()
+                    next_execution = start_time + interval
+                    while not stop:
+                        current_time = time.time()
+                        # Falls eine Stunde um ist, wird die Funktion ausgeführt
+                        if current_time >= next_execution:
+                            scrape_weather_hourly(city_name, username)
+                            next_execution = current_time + interval
+                            continue
+                        # Falls der Benutzer "Backspace" drückt, wird der Vorgang abgebrochen
+                        if keyboard.is_pressed("backspace"):
+                            print("Wird gestoppt")
+                            stop = True
+                            
+                else:
                     continue
-
-                if keyboard.is_pressed("backspace"):
-                    print("Wird gestoppt")
-                    stop = True
-
+                
+                break
+        # Option 3, um alle Einträge der Datenbank auszugeben
         elif choice == "3":
             print("Option 3 ausgewählt.")
             display_all_weather_data(username, "Wetter Datenbanken")
             continue
-
+        # Option 4, um sich mit der Datenbank zu verbinden, um Benutzerdefinierte SQL-Abfragen durchzuführen
         elif choice == "4":
+            print("Option 4 ausgewählt.")
             print("Verbindung wird aufgebaut!")
             connect_to_weather_database(username, "Wetter Datenbanken")
             continue
-
+        # Option 5, um alle Einträge der Datenbank zu löschen
         elif choice == "5":
+            print("Option 5 ausgewählt.")
             print("Verbindung wird aufgebaut!")
             delete_all_entrys(username, "Wetter Datenbanken")
             continue
-
+        # Option 6, um vorhandene Wetterdaten einer Stadt grafisch darzustellen
         elif choice == "6":
             print("Option 6 ausgewählt.")
-            city_name = input("Stadtname eingeben: ")
-            show_graphs(city_name, "Wetter Datenbanken", username)
-            continue
-
+            while choice == "6":
+                city_name = input("Stadtname eingeben: ")
+                if is_valid_city(city_name):
+                    show_graphs(city_name, "Wetter Datenbanken", username)
+                    break
+                else:
+                    continue
+        # Option 7, um sich mit einem anderen Benutzer anzumelden
         elif choice == "7":
+            print("Wird abgemeldet ...")
+            main_loop()
+        # Option 8, um das Skript zu beenden
+        elif choice == "8":
             print("Skript wird beendet!")
             exit()
 
         else:
-            print("Ungültige Eingabe. Bitte eine Zahl zwischen 1 und 7!")
+            print("Ungültige Eingabe. Bitte eine Zahl zwischen 1 und 8!")
             continue
 
 
