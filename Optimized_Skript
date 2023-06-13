@@ -24,22 +24,23 @@ import matplotlib.pyplot as plt
 # Bibliothek für REGEX abfragen
 import re
 
-
 # Header, welcher für das holen der Wetterdaten benötigt wird. Gibt dem Server Informationen über den Client
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 }
 
+
 # Funktion, um ein Passwort zu validieren
 def is_valid_password(password):
     # Dieses Muster gibt vor, wie das Password aufgebaut sein muss. 8 Zeichen lang, Gross- Kleinschreibung und Sonderzeichen
     pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@#$%^&+=!])(?!.*\s)[A-Za-z\d@#$%^&+=!]{8,}$'
-    
+
     # Je nachdem, ob das Passwort valide ist oder nicht wird True oder False zurückgegeben.
     if re.match(pattern, password):
         return True
     else:
         return False
+
 
 # Funktion, um ein Benutzername zu validieren
 def is_valid_username(username):
@@ -57,7 +58,7 @@ def is_valid_username(username):
 def is_valid_city(city):
     # Da es zu gross wäre, eine ganze liste mit den Städten und Orten zu nutzen, wird hier nur geschaut, dass keine Sonderzeichen wie @, #, () etc. verwendet werden.
     pattern = r'^[A-Za-zäöüÄÖÜ\s-]+$'
-    
+
     # Je nachdem, ob die Stadt/Ort valide ist oder nicht wird True oder False zurückgegeben.
     if re.match(pattern, city):
         return True
@@ -137,7 +138,7 @@ def verify_password(user, password, subfolder):
         stored_password = result[0]
         if hashed_password == stored_password:
             return True
-            
+
     return False
 
 
@@ -233,7 +234,8 @@ def scrape_weather_hourly(city_name, user):
         print("Zeit: " + time)
         print("Wetter Beschrieb: " + info)
         # Wetterdaten in die Datenbank schreiben
-        insert_weather_data(location, time, info, temperature, precipitation, humidity, wind, user, "Wetter Datenbanken")
+        insert_weather_data(location, time, info, temperature, precipitation, humidity, wind, user,
+                            "Wetter Datenbanken")
         print("Wetterdaten erfolgreich in die Datenbank eingefügt.")
 
     except:
@@ -265,7 +267,8 @@ def scrape_weather(city_name, user):
         print("Zeit: " + time)
         print("Wetter Beschrieb: " + info)
         # Wetterdaten in die Datenbank schreiben
-        insert_weather_data(location, time, info, temperature, precipitation, humidity, wind, user, "Wetter Datenbanken")
+        insert_weather_data(location, time, info, temperature, precipitation, humidity, wind, user,
+                            "Wetter Datenbanken")
         print("Wetterdaten erfolgreich in die Datenbank eingefügt.")
 
     except:
@@ -353,13 +356,13 @@ def connect_to_weather_database(user, subfolder):
         # Falls der SQL-Befehl fehlerhaft ist oder eine andere Fehlermeldung von SQL kommt, wird dese ebenfalls ausgegeben
         except sqlite3.Error as e:
             print("Fehler bei der Ausführung der Abfrage:", e)
-        
+
         query = input("Geben Sie Ihre SQL-Abfrage ein (oder 'q' zum Beenden): ")
     conn.close()
 
 
 # Funktion, um vorhandene Wetterdaten einer Stadt grafisch darzustellen
-def show_graphs (city, subfolder, user):
+def show_graphs(city, subfolder, user):
     # Pfad zur Datenbank
     db_path = os.path.join(subfolder, f'weather-{user}.db')
     # Mit der Datenbank verbinden
@@ -371,9 +374,9 @@ def show_graphs (city, subfolder, user):
     # Falls wetterdaten vorhanden sind, werden diese grafisch dargestellt quelle: matplotlib.org
     if len(rows) > 0:
         # Liste der Temperaturen für die Stadt extrahieren
-        temperatures = [float(row[4]) for row in rows]  
+        temperatures = [float(row[4]) for row in rows]
         # Liste der Zeitstempel für die Stadt extrahieren
-        timestamps = [row[2] for row in rows]  
+        timestamps = [row[2] for row in rows]
         # Grafik erstellen
         plt.plot(timestamps, temperatures)
         plt.xlabel('Zeit')
@@ -390,8 +393,8 @@ def show_graphs (city, subfolder, user):
     conn.close()
 
 
-# Funktion, um alle Einträge einer Datenbakn zu löschen 
-def delete_all_entrys (user, subfolder):
+# Funktion, um alle Einträge einer Datenbakn zu löschen
+def delete_all_entrys(user, subfolder):
     try:
         # Pfad zur Datenbank
         db_path = os.path.join(subfolder, f'weather-{user}.db')
@@ -462,43 +465,65 @@ def admin_loop():
         # Option 2, um einen neuen Benutzer zu erstellen
         elif choice == "2":
             print("Option 2 ausgewählt.")
-            while choice == "2":
-                newuser = input("Benutzername eingeben")
-                password = input("Password eingeben")
-                # Überprüfung, ob Benutzername und Passwort valid sind
-                if is_valid_username(newuser) and is_valid_password(password):
-                    create_new_user(newuser, password, "User Datenbank")
-                    create_weather_table(newuser, "Wetter Datenbanken")
-                    print("Benutzer erfolgreich erstellt")
-                    break
-                else:
-                    print("Benutzername oder Passwort ungültig")
-                    print("Bitte beachte, dass der Benutzername zwischen 3 und 16 Zeichen lang ist und keine Sonderzeichen enthält")
-                    print("Bitte beachte, dass das Passwort mindestens 8 Zeichen lang ist und Zahlen, Gross- Kleinschreibung und mindestens ein Sonderzeichen enthält")
-                    continue
-        # Option 3, um den ausgewählten Benutzer zu löschen 
+            if database_choice == "":
+                print("Keine Datenbank ausgewählt!")
+                continue
+            else:
+                while choice == "2":
+                    newuser = input("Benutzername eingeben")
+                    password = input("Password eingeben")
+                    # Überprüfung, ob Benutzername und Passwort valid sind
+                    if is_valid_username(newuser) and is_valid_password(password):
+                        create_new_user(newuser, password, "User Datenbank")
+                        create_weather_table(newuser, "Wetter Datenbanken")
+                        print("Benutzer erfolgreich erstellt")
+                        break
+                    else:
+                        print("Benutzername oder Passwort ungültig")
+                        print(
+                            "Bitte beachte, dass der Benutzername zwischen 3 und 16 Zeichen lang ist und keine Sonderzeichen enthält")
+                        print(
+                            "Bitte beachte, dass das Passwort mindestens 8 Zeichen lang ist und Zahlen, Gross- Kleinschreibung und mindestens ein Sonderzeichen enthält")
+                        continue
+        # Option 3, um den ausgewählten Benutzer zu löschen
         elif choice == "3":
             print("Option 3 ausgewählt.")
-            print("Verbindung wird aufgebaut!")
-            delete_user(database_choice, "User Datenbank")
-            continue
+            if database_choice == "":
+                print("Keine Datenbank ausgewählt!")
+                continue
+            else:
+                print("Verbindung wird aufgebaut!")
+                delete_user(database_choice, "User Datenbank")
+                continue
         # Option 4, um alle Daten der ausgewählten Datenbank auszugeben
         elif choice == "4":
             print("Option 4 ausgewählt.")
-            print("Verbindung wird aufgebaut!")
-            display_all_weather_data(database_choice, "Wetter Datenbanken")
-            continue
+            if database_choice == "":
+                print("Keine Datenbank ausgewählt!")
+                continue
+            else:
+                print("Verbindung wird aufgebaut!")
+                display_all_weather_data(database_choice, "Wetter Datenbanken")
+                continue
         # Option 5, um sich mit der Datenbank zu verbinden, um Benutzerdefinierte SQL-Abfragen durchzuführen
         elif choice == "5":
             print("Option 5 ausgewählt.")
-            print("Verbindung wird aufgebaut!")
-            connect_to_weather_database(database_choice, "Wetter Datenbanken")
-            continue
+            if database_choice == "":
+                print("Keine Datenbank ausgewählt!")
+                continue
+            else:
+                print("Verbindung wird aufgebaut!")
+                connect_to_weather_database(database_choice, "Wetter Datenbanken")
+                continue
         # Option 6, um alle Einträge der ausgewählten Datenbank zu löschen
         elif choice == "6":
             print("Option 6 ausgewählt.")
-            print("Verbindung wird aufgebaut!")
-            delete_all_entrys(database_choice, "Wetter Datenbanken")
+            if database_choice == "":
+                print("Keine Datenbank ausgewählt!")
+                continue
+            else:
+                print("Verbindung wird aufgebaut!")
+                delete_all_entrys(database_choice, "Wetter Datenbanken")
         # Option 7, um eine andere Datenbank/ Benutzer auszuwählen
         elif choice == "7":
             print("Option 7 ausgewählt.")
@@ -513,7 +538,7 @@ def admin_loop():
             exit()
 
         else:
-            # Bei falscher Eingabe wird eine Fehlermeldung angezeigt 
+            # Bei falscher Eingabe wird eine Fehlermeldung angezeigt
             print("Ungültige Eingabe. Bitte eine Zahl zwischen 1 und 9!")
             continue
 
@@ -578,7 +603,7 @@ def main_loop():
                 # Abfrage der Stadt/Ort
                 city_name = input("Stadtnamen eingeben: ")
                 # Überprüfung, ob die Stadt/Ort valid ist
-                if is_valid_city(city_name)
+                if is_valid_city(city_name):
                     # Erste Ausführung im sofort
                     scrape_weather_hourly(city_name, username)
                     # interval, um Stündlich zu wiederholen
@@ -596,17 +621,17 @@ def main_loop():
                         if keyboard.is_pressed("backspace"):
                             print("Wird gestoppt")
                             stop = True
-                            
+
                 else:
                     continue
-                
+
                 break
         # Option 3, um alle Einträge der Datenbank auszugeben
         elif choice == "3":
             print("Option 3 ausgewählt.")
             display_all_weather_data(username, "Wetter Datenbanken")
             continue
-        # Option 4, um sich mit der Datenbank zu verbinden, um Benutzerdefinierte SQL-Abfragen durchzuführen
+        # Option 4, um sich mit der Datenbank zu verbinden, um benutzerdefinierte SQL-Abfragen durchzuführen
         elif choice == "4":
             print("Option 4 ausgewählt.")
             print("Verbindung wird aufgebaut!")
